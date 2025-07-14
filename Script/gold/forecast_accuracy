@@ -1,0 +1,9 @@
+CREATE VIEW gold.forecast_accuracy AS
+SELECT
+    fi.date,
+    fi.store_id_region,
+    fi.product_id,
+    fi.demand_forecast,
+    fi.units_sold AS actual_sales,
+    ROUND(100 - ABS(fi.demand_forecast - fi.units_sold) / NULLIF(fi.units_sold, 0) * 100, 2) AS forecast_accuracy_pct
+FROM silver.fact_inventory fi;
