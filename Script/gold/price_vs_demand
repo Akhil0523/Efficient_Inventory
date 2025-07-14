@@ -1,0 +1,45 @@
+CREATE VIEW gold.price_vs_demand AS
+SELECT
+    fi.store_id_region,
+    fi.product_id,
+    dp.category,
+    fi.date,
+    fi.price,
+    fi.units_sold,
+
+    LAG(fi.price, 1) OVER (
+        PARTITION BY fi.store_id_region, fi.product_id 
+        ORDER BY fi.date
+    ) AS prev_price,
+
+    LAG(fi.units_sold, 1) OVER (
+        PARTITION BY fi.store_id_region, fi.product_id 
+        ORDER BY fi.date
+    ) AS prev_units_sold,
+
+    ROUND(
+        (fi.units_sold - LAG(fi.units_sold, 1) OVER (
+            PARTITION BY fi.store_id_region, fi.product_id 
+            ORDER BY fi.date
+        )) /
+        NULLIF(LAG(fi.units_sold, 1) OVER (
+            PARTITION BY fi.store_id_region, fi.product_id 
+            ORDER BY fi.date
+        ), 0),
+        2
+    ) AS pct_change_demand,
+
+    ROUND(
+        (fi.price - LAG(fi.price, 1) OVER (
+            PARTITION BY fi.store_id_region, fi.product_id 
+            ORDER BY fi.date
+        )) /
+        NULLIF(LAG(fi.price, 1) OVER (
+            PARTITION BY fi.store_id_region, fi.product_id 
+            ORDER BY fi.date
+        ), 0),
+        2
+    ) AS pct_change_price
+
+FROM silver.fact_inventory fi
+JOIN silver.dim_product dp ON fi.product_id = dp.product_id;
