@@ -1,0 +1,12 @@
+CREATE VIEW gold.region_stock_efficiency AS
+SELECT
+    ds.region,
+    COUNT(DISTINCT fi.product_id) AS total_products,
+    ROUND(SUM(fi.units_sold), 2) AS total_units_sold,
+    ROUND(AVG(fi.inventory_level), 2) AS avg_inventory_level,
+    ROUND(SUM(fi.units_sold) / NULLIF(AVG(fi.inventory_level), 0), 2) AS turnover_ratio,
+    ROUND(AVG(fi.price), 2) AS avg_price,
+    ROUND(SUM(fi.units_sold * fi.price), 2) AS total_revenue
+FROM silver.fact_inventory fi
+JOIN silver.dim_store ds ON fi.store_id_region = ds.store_id_region
+GROUP BY ds.region;
