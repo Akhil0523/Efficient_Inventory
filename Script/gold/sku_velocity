@@ -1,0 +1,14 @@
+CREATE VIEW gold.sku_velocity AS
+SELECT
+    fi.product_id,
+    dp.category,
+    ROUND(AVG(fi.units_sold), 2) AS avg_daily_sales,
+    ROUND(SUM(fi.units_sold) / NULLIF(AVG(fi.inventory_level), 0), 2) AS turnover_rate,
+    CASE
+        WHEN AVG(fi.units_sold) >= 50 THEN 'Fast'
+        WHEN AVG(fi.units_sold) BETWEEN 20 AND 49 THEN 'Moderate'
+        ELSE 'Slow'
+    END AS velocity_class
+FROM silver.fact_inventory fi
+JOIN silver.dim_product dp ON fi.product_id = dp.product_id
+GROUP BY fi.product_id, dp.category;
