@@ -1,0 +1,13 @@
+CREATE VIEW gold.category_level_summary AS
+SELECT
+    dp.category,
+    ds.region,
+    MONTH(fi.date) AS month,
+    SUM(fi.units_sold) AS total_units_sold,
+    SUM(fi.units_ordered) AS total_units_ordered,
+    SUM(fi.inventory_level) AS closing_inventory,
+    ROUND(SUM(fi.units_sold) / NULLIF(AVG(fi.inventory_level), 0), 2) AS turnover_ratio
+FROM silver.fact_inventory fi
+JOIN silver.dim_product dp ON fi.product_id = dp.product_id
+JOIN silver.dim_store ds ON fi.store_id_region = ds.store_id_region
+GROUP BY dp.category, ds.region, MONTH(fi.date);
