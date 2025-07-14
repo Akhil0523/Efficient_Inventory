@@ -1,0 +1,9 @@
+CREATE VIEW gold.inventory_turnover AS
+SELECT
+    product_id,
+    ROUND(SUM(units_sold), 2) AS total_units_sold,
+    ROUND(AVG(inventory_level), 2) AS avg_inventory,
+    ROUND(SUM(units_sold) / NULLIF(AVG(inventory_level), 0), 2) AS turnover_ratio,
+    ROUND(365 / NULLIF(SUM(units_sold) / NULLIF(AVG(inventory_level), 0), 0), 2) AS days_inventory_on_hand
+FROM silver.fact_inventory
+GROUP BY product_id;
