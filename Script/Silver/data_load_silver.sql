@@ -9,34 +9,68 @@ BEGIN
     DECLARE start_time DATETIME;
     DECLARE end_time DATETIME;
 
-    -- Load Sales table
+    -- Load dim_product table
     SET start_time = NOW();
-    TRUNCATE TABLE silver.Sales;
-    INSERT INTO silver.Sales (Date, store_id, product_id, units_sold, units_ordered, demand_forecast, price, discount)
-    SELECT Date, store_id, product_id, units_sold, units_ordered, demand_forecast, price, discount
+    TRUNCATE TABLE silver.dim_product;
+    
+    INSERT INTO dim_product (product_id, category)
+    SELECT DISTINCT `Product ID`, Category
     FROM bronze.inventory_forecasting;
-    SET end_time = NOW();
-    SELECT CONCAT('Silver Sales Load Duration: ', TIMESTAMPDIFF(SECOND, start_time, end_time), ' seconds') AS msg;
 
-    -- Load Warehouse table
-    SET start_time = NOW();
-    TRUNCATE TABLE silver.Warehouse;
-    INSERT INTO silver.Warehouse (date, store_id, product_id, inventory_level, weather_condition, holiday_promotion, region)
-    SELECT DISTINCT date, store_id, product_id, inventory_level, weather_condition, holiday_promotion, region
-    FROM bronze.inventory_forecasting;
     SET end_time = NOW();
-    SELECT CONCAT('Silver Warehouse Load Duration: ', TIMESTAMPDIFF(SECOND, start_time, end_time), ' seconds') AS msg;
+    SELECT CONCAT('Silver dim_product Load Duration: ', TIMESTAMPDIFF(SECOND, start_time, end_time), ' seconds') AS msg;
 
-    -- Load Product table
+    -- Load dim_store table
     SET start_time = NOW();
-    TRUNCATE TABLE silver.Product;
-    INSERT INTO silver.Product (product_id, category, competitor_pricing, seasonality)
-    SELECT DISTINCT product_id, category, competitor_pricing, seasonality
+    TRUNCATE TABLE silver.dim_store;
+    
+    INSERT INTO dim_store (store_id, region, store_id_region)
+    SELECT DISTINCT `Store ID`, Region, CONCAT(`Store ID`, '_', Region)
     FROM bronze.inventory_forecasting;
+
     SET end_time = NOW();
-    SELECT CONCAT('Silver Product Load Duration: ', TIMESTAMPDIFF(SECOND, start_time, end_time), ' seconds') AS msg;
+    SELECT CONCAT('Silver dim_store Load Duration: ', TIMESTAMPDIFF(SECOND, start_time, end_time), ' seconds') AS msg;
+
+    -- Load dim_date table
+    SET start_time = NOW();
+    TRUNCATE TABLE silver.dim_date;
+
+    INSERT INTO dim_date (date, seasonality)
+    SELECT DISTINCT Date, Seasonality
+    FROM bronze.inventory_forecasting;
+    
+    SET end_time = NOW();
+    SELECT CONCAT('Silver dim_date Load Duration: ', TIMESTAMPDIFF(SECOND, start_time, end_time), ' seconds') AS msg;
+
+    -- Load fact_inventory table
+    SET start_time = NOW();
+    TRUNCATE TABLE silver.fact_inventory;
+
+    INSERT INTO fact_inventory (
+    date, product_id, store_id_region,
+    inventory_level, units_sold, units_ordered,
+    demand_forecast, price, discount, competitor_pricing,
+    weather_condition, holiday_promotion
+    )
+    SELECT 
+        f.Date,
+        f.`Product ID`,
+        CONCAT(f.`Store ID`, '_', f.Region),
+        f.`Inventory Level`,
+        f.`Units Sold`,
+        f.`Units Ordered`,
+        f.`Demand Forecast`,
+        f.Price,
+        f.Discount,
+        f.`Competitor Pricing`,
+        f.`Weather Condition`,
+        f.`Holiday/Promotion`
+    FROM inventoryproblems.inventory_forecasting f;
+
+    SET end_time = NOW();
+    SELECT CONCAT('Silver fact_inventory Load Duration: ', TIMESTAMPDIFF(SECOND, start_time, end_time), ' seconds') AS msg;
+
 END $$
 DELIMITER ;
-
 
 CALL silver_load();
