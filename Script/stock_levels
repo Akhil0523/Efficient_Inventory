@@ -1,0 +1,16 @@
+CREATE VIEW gold.stock_levels AS
+SELECT
+    fi.store_id_region,
+    ds.store_id,
+    ds.region,
+    fi.product_id,
+    dp.category,
+    fi.date,
+    fi.inventory_level,
+    fi.units_sold,
+    ROUND(SUM(fi.units_sold) OVER (PARTITION BY fi.store_id_region, fi.product_id ORDER BY fi.date ROWS BETWEEN 29 PRECEDING AND CURRENT ROW) / 30, 2) AS avg_30d_sales,
+    ROUND(fi.inventory_level / NULLIF(SUM(fi.units_sold) OVER (PARTITION BY fi.store_id_region, fi.product_id ORDER BY fi.date ROWS BETWEEN 29 PRECEDING AND CURRENT ROW) / 30, 0), 2) AS days_of_supply
+FROM silver.fact_inventory fi
+JOIN silver.dim_product dp ON fi.product_id = dp.product_id
+JOIN silver.dim_store ds ON fi.store_id_region = ds.store_id_region
+JOIN silver.dim_date dd ON fi.date = dd.date;
