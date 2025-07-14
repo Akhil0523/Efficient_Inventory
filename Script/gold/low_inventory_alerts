@@ -1,0 +1,15 @@
+CREATE VIEW gold.low_inventory_alerts AS
+SELECT
+    fi.store_id_region,
+    fi.product_id,
+    fi.date,
+    fi.inventory_level,
+    ROUND(SUM(fi.units_sold) OVER (PARTITION BY fi.store_id_region, fi.product_id ORDER BY fi.date ROWS BETWEEN 6 PRECEDING AND CURRENT ROW) / 7, 2) AS avg_7d_sales,
+    ROUND(SUM(fi.units_sold) OVER (PARTITION BY fi.store_id_region, fi.product_id ORDER BY fi.date ROWS BETWEEN 6 PRECEDING AND CURRENT ROW) / 7 * 5, 2) AS reorder_point,
+    CASE
+        WHEN fi.inventory_level = 0 THEN 'OUT'
+        WHEN fi.inventory_level <= ROUND(SUM(fi.units_sold) OVER (PARTITION BY fi.store_id_region, fi.product_id ORDER BY fi.date ROWS BETWEEN 6 PRECEDING AND CURRENT ROW) / 7 * 5, 2)
+             THEN 'LOW'
+        ELSE 'OK'
+    END AS stock_status
+FROM silver.fact_inventory fi;
