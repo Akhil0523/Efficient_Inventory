@@ -1,0 +1,26 @@
+CREATE VIEW gold.discount_effectiveness AS
+SELECT
+    fi.product_id,
+    ds.region,
+    fi.date,
+    fi.discount,
+    fi.holiday_promotion,
+    fi.units_sold,
+
+    -- 7-day rolling avg before current date (excluding today)
+    AVG(fi.units_sold) OVER (
+        PARTITION BY fi.product_id, ds.region 
+        ORDER BY fi.date 
+        ROWS BETWEEN 6 PRECEDING AND 1 PRECEDING
+    ) AS avg_units_before_discount,
+
+    -- Promotion Status based on discount or holiday_promotion
+    CASE
+        WHEN fi.discount > 0 AND fi.holiday_promotion = TRUE THEN 'Promo + Holiday'
+        WHEN fi.discount > 0 THEN 'Promoted'
+        WHEN fi.holiday_promotion = TRUE THEN 'Holiday Only'
+        ELSE 'No Promo'
+    END AS promo_status
+
+FROM silver.fact_inventory fi
+JOIN silver.dim_store ds ON fi.store_id_region = ds.store_id_region;
